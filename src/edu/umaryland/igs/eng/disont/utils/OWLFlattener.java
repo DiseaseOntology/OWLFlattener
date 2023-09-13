@@ -1,5 +1,7 @@
 package edu.umaryland.igs.eng.disont.utils;
 
+import edu.umaryland.igs.eng.disont.utils.OWLUtil;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -67,7 +69,7 @@ import org.apache.commons.cli.ParseException;
 public class OWLFlattener {
 
 
-	private static String ROOT_IRI = "http://purl.obolibrary.org/obo/DOID_4";
+	private static String ROOT_IRI = null;
 	private OWLOntology ontology = null;
 	private Set<OWLClassImpl> excludeSet = null;
 	
@@ -76,11 +78,11 @@ public class OWLFlattener {
 	private String inputFile = null;
 	
 	private static boolean DEBUG = false;
-	
+
+	// PUT IDs into the TRACE_IDS array and set TRACE_MODE = true in order to only see output about specific terms.
 	private static boolean TRACE_MODE = false;
-	// PUT DO IDs in this array and set TRACE_MODE = true in order to only see output about specific terms.
-	
-	private static String[] TRACE_IDS = new String[] {"DOID_0001816"};
+	private static String[] TRACE_IDS = null; //eg: new String[] {"DOID_0001816"};
+
 			
 
 	private Map<OWLClass, Boolean> axiomParentsComplete = new HashMap<>();
@@ -261,11 +263,10 @@ public class OWLFlattener {
 				OWLClassExpression subClass = ascoai.getSubClass();
 				if (subClass instanceof OWLClassImpl) {
 					if (!((OWLClassImpl)subClass).getIRI().toString().equals(c.getIRI().toString())) {
-						System.out.println("Incorrect axiom direction: " + a.toString());
+						if (OWLFlattener.DEBUG) {
+							System.out.println("Incorrect axiom direction: " + a.toString());
+						}
 						continue;
-					}
-					else {
-						System.out.println("Correct axiom direction:" + a.toString());
 					}
 				}
 				else {
@@ -943,13 +944,20 @@ public class OWLFlattener {
 		String owlFile = null;
 		
 		Options options = new Options();
-        Option owlOpt = Option.builder("f")
+        Option owlOpt = Option.builder("i")
             .required(true)
-            .desc("Path to the doid-merged.owl file")
+            .desc("Path to the merged owl file")
             .longOpt("owl")
             .hasArg()
             .build();
 
+        Option rootOpt = Option.builder("r")
+            .required(true)
+            .desc("Root IRI: eg: http://purl.obolibrary.org/obo/DOID_4")
+            .longOpt("root")
+            .hasArg()
+            .build();
+        
         Option debugOpt = Option.builder("d")
                 .required(false)
                 .desc("Turn on debug logging")
@@ -971,6 +979,7 @@ public class OWLFlattener {
 
         
         options.addOption(owlOpt);
+        options.addOption(rootOpt);
         options.addOption(debugOpt);
         options.addOption(traceOpt);
         options.addOption(helpOption);
@@ -1000,6 +1009,8 @@ public class OWLFlattener {
                 OWLFlattener.TRACE_MODE = true;
                 OWLFlattener.DEBUG = false; //turn off debug when tracing
             }
+            
+            OWLFlattener.ROOT_IRI = cmdLine.getOptionValue("root");
             
             owlFile = cmdLine.getOptionValue("owl");
             
